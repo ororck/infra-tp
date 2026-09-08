@@ -17,14 +17,16 @@ resource "azurerm_key_vault" "kv" {
 resource "azurerm_role_assignment" "kv_admin_me" {
   scope                = azurerm_key_vault.kv.id
   role_definition_name = "Key Vault Secrets Officer"
-  principal_id         = data.azurerm_client_config.current.object_id
+  principal_id         = var.operator_object_id
 }
 
-# La pipeline CI/CD (id-tp-cicd) doit pouvoir lire/écrire ce secret elle-même :
-# data.azurerm_client_config.current pointe vers l'identité qui exécute Terraform
-# à l'instant T (moi en local, id-tp-cicd en CI). Sans cette attribution statique,
-# le premier apply en CI échoue en 403 avant même de pouvoir remplacer kv_admin_me,
-# faute d'accès pour rafraîchir l'état du secret.
+# La pipeline CI/CD (id-tp-cicd) doit aussi pouvoir lire/écrire ce secret elle-même.
+# kv_admin_me est volontairement figé sur var.operator_object_id (et non
+# data.azurerm_client_config.current, qui pointe vers l'identité exécutant Terraform
+# à l'instant T) : avec "current", cette attribution bascule à chaque changement
+# d'exécutant (moi en local, id-tp-cicd en CI), ce qui force un remplacement à
+# chaque run et peut entrer en collision avec l'attribution CI ci-dessous quand
+# les deux principals coïncident (GUID déterministe identique côté Azure).
 data "azurerm_user_assigned_identity" "cicd" {
   name                = "id-tp-cicd"
   resource_group_name = data.azurerm_resource_group.rg.name

@@ -14,7 +14,7 @@ variable "prefix" {
 
 variable "node_vm_size" {
   type    = string
-  default = "Standard_B2s"
+  default = "Standard_D2_v3"
 }
 
 variable "node_count" {
@@ -24,4 +24,9 @@ variable "node_count" {
 
 variable "employees_group_object_id" {
   type = string
+}
+
+variable "operator_object_id" {
+  type        = string
+  description = "Object ID Entra de l'opérateur humain (moi), pour l'accès Key Vault local. Indépendant de qui exécute Terraform."
 }
