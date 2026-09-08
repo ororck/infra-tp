@@ -19,7 +19,7 @@ variable "node_vm_size" {
 
 variable "node_count" {
   type    = number
-  default = 2
+  default = 1
 }
 
 variable "employees_group_object_id" {
