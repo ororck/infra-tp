@@ -20,12 +20,29 @@ resource "azurerm_role_assignment" "kv_admin_me" {
   principal_id         = data.azurerm_client_config.current.object_id
 }
 
+# La pipeline CI/CD (id-tp-cicd) doit pouvoir lire/écrire ce secret elle-même :
+# data.azurerm_client_config.current pointe vers l'identité qui exécute Terraform
+# à l'instant T (moi en local, id-tp-cicd en CI). Sans cette attribution statique,
+# le premier apply en CI échoue en 403 avant même de pouvoir remplacer kv_admin_me,
+# faute d'accès pour rafraîchir l'état du secret.
+data "azurerm_user_assigned_identity" "cicd" {
+  name                = "id-tp-cicd"
+  resource_group_name = data.azurerm_resource_group.rg.name
+}
+
+resource "azurerm_role_assignment" "kv_admin_cicd" {
+  scope                = azurerm_key_vault.kv.id
+  role_definition_name = "Key Vault Secrets Officer"
+  principal_id         = data.azurerm_user_assigned_identity.cicd.principal_id
+  principal_type       = "ServicePrincipal"
+}
+
 resource "azurerm_key_vault_secret" "pg" {
   name         = "postgres-password"
   value        = random_password.pg.result
   key_vault_id = azurerm_key_vault.kv.id
 
-  depends_on = [azurerm_role_assignment.kv_admin_me]
+  depends_on = [azurerm_role_assignment.kv_admin_me, azurerm_role_assignment.kv_admin_cicd]
 }
 
 resource "azurerm_user_assigned_identity" "bdd" {
