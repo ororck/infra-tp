@@ -7,10 +7,7 @@ resource "azurerm_storage_account" "partage" {
   account_kind                    = "StorageV2"
   min_tls_version                 = "TLS1_2"
   allow_nested_items_to_be_public = false
-
-  azure_files_authentication {
-    directory_type = "AADKERB"
-  }
+  default_to_oauth_authentication = true
 }
 
 resource "azurerm_storage_share" "partage" {
@@ -19,9 +16,9 @@ resource "azurerm_storage_share" "partage" {
   quota              = 50
 }
 
-resource "azurerm_role_assignment" "smb_contributor" {
-  scope                = azurerm_storage_share.partage.resource_manager_id
-  role_definition_name = "Storage File Data SMB Share Contributor"
+resource "azurerm_role_assignment" "share_contributor" {
+  scope                = azurerm_storage_account.partage.id
+  role_definition_name = "Storage File Data Privileged Contributor"
   principal_id         = var.employees_group_object_id
   principal_type       = "Group"
 }
